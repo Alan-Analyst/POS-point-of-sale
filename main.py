@@ -10,7 +10,7 @@ from reports import Reports
 from end_of_day import EndOfDay
 from add_book import AddBook
 import customtkinter as ct
-from PIL import Image, ImageTk
+from PIL import Image, Image
 
 # Connecting with the database if already exists, if it's not create a new one
 with sqlite3.connect("c_bookshop_db.db") as db:
