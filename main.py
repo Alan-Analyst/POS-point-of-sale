@@ -62,6 +62,7 @@ class Application(ct.CTk):
         # Top frame
         self.frame_top = ct.CTkFrame(self, border_width=1, corner_radius=0, fg_color='white')
         self.frame_top.grid(row=0, column=0, sticky='new')
+        self.frame_top.columnconfigure(7, weight=1)
 
         # Center frame
         container = ct.CTkFrame(self, corner_radius=0)
@@ -121,6 +122,14 @@ class Application(ct.CTk):
                                       command=lambda: self.show_frame(About))
         self.btn_about.grid(row=0, column=6, padx=2, pady=10, ipady=3, ipadx=3)
 
+        # Exit button
+        self.image_exit = ct.CTkImage(Image.open("images/exit.png"), size=(40, 40))
+        self.btn_exit = ct.CTkButton(self.frame_top, text='X', font=('arial', 28, 'bold'),
+                                     compound='left', height=53, width=38, fg_color='#E74C3C', text_color='white',
+                                     hover_color='white',
+                                     command=lambda: root.destroy())
+        self.btn_exit.grid(row=0, column=7, padx=10, pady=10, sticky='e')
+
     # self.appearance_mode_label = ct.CTkLabel(self.frame_top, text="Appearance Mode:", anchor="w")
     # self.appearance_mode_label.grid(row=0, column=7, padx=7, pady=(10, 10))
     # self.appearance_mode_option_menu = ct.CTkOptionMenu(self.frame_top, values=["Light", "Dark", "System"],
@@ -131,15 +140,20 @@ class Application(ct.CTk):
         frame = self.frames[container]
         frame.tkraise()
 
-    def change_appearance_mode_event(self, new_appearance_mode: str):
-        ct.set_appearance_mode(new_appearance_mode)
-
 
 # Root window
 if __name__ == "__main__":
     root = Application()
     root.title('Cambridge Bookshop Point of Sale 2023')
-    root.minsize(1200, 700)
     root.iconbitmap('images/point-of-sale.ico')
-    root.state('zoomed')
+    # set the window state to full screen
+    # set the window to full screen
+    root.overrideredirect(True)
+
+    # get the width and height of the screen
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    # set the size and position of the window to cover the entire screen
+    root.geometry("%dx%d+0+0" % (screen_width, screen_height))
     root.mainloop()
