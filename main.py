@@ -139,7 +139,7 @@ class Application(ct.CTk):
     def show_frame(self, container):
         frame = self.frames[container]
         frame.tkraise()
-
+a
 
 # Root window
 if __name__ == "__main__":
