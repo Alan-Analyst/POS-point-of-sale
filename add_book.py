@@ -93,6 +93,17 @@ class AddBook(ct.CTkFrame):
                                             value=2)
         self.rb_printed.grid(row=2, column=0, sticky='W', padx=10, pady=10)
 
+        self.combobox_var = ct.StringVar(value="Not Specified")  # set initial value
+
+        def combobox_callback(choice):
+            print("combobox dropdown clicked:", choice)
+
+        combobox = ct.CTkComboBox(master=self.rb_frame,
+                                  values=["Not Specified", "Fantasy", "Fiction", "Non-Fiction", "Romance", "Business"
+                                          , "Color Book", "School Book", "Academic Book", "History", "Cookbook"],
+                                  variable=self.combobox_var)
+        combobox.grid(row=2, column=1, sticky='W', padx=10, pady=10)
+
         self.cover = tk.IntVar()
         self.cover.set(0)
         self.rb_cover_paperback = ct.CTkRadioButton(self.rb_frame, text='Paperback', variable=self.cover, value=0)
@@ -170,15 +181,16 @@ class AddBook(ct.CTkFrame):
             for key, variable in self.variables.items():
                 data[key] = variable.get()
             data.update({'cover': self.cover.get(), 'copy': self.copy_quality.get(),
-                         'date_added': self.now})
+                         'date_added': self.now, 'category': self.combobox_var.get()})
 
             # Create a tuple from data dictionary
             book_info = (data['barcode'], data['title'].title(), data['author'].title(), data['cost_price'],
-                         data['selling_price'], data['qty'], data['cover'], data['copy'], data['date_added'])
+                         data['selling_price'], data['qty'], data['cover'], data['copy'], data['date_added'],
+                         data['category'])
 
             # Insert tuple book_info into the database
             cursor.execute('''INSERT INTO Books (barcode, title, author, cost_price, selling_price, qty, cover, copy, 
-            date_added)VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', book_info)
+            date_added, category)VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', book_info)
             db.commit()
 
             self.records_saved += 1

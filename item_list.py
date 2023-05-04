@@ -98,6 +98,7 @@ class ItemList(ct.CTkFrame):
         # List details
         self.list_details = tk.Listbox(self.frame_child_bottom, bd=6, font='Calibri 18 bold')
         self.list_details.grid(row=0, column=1, padx=(10, 0), sticky='NEWS')
+
         # Statistics
         self.lbl_book_count = ct.CTkLabel(self.frame_grandchild_statistics, text='', padx=20, text_color="red",
                                           font=('verdana', 16, 'bold'))
@@ -143,6 +144,9 @@ class ItemList(ct.CTkFrame):
         self.list_details.delete(0, tk.END)
         # Fix this error
         self.list_details.insert(0, f'ISBN: {book_info[0][1]}')
+        # Copy ISBN to clip board when a book is selected
+        self.clipboard_clear()
+        self.clipboard_append(book_info[0][1])
         self.list_details.insert(1, f'Book Title: {book_info[0][2]}')
         self.list_details.insert(2, f'Author: {book_info[0][3]}')
         self.list_details.insert(3, f'Cost Price(IQD):  {book_info[0][4]}')
@@ -162,6 +166,7 @@ class ItemList(ct.CTkFrame):
         else:
             self.list_details.insert(7, 'Printed')
         self.list_details.insert(8, f'Date Added: {book_info[0][9]}')
+        self.list_details.insert(9, f'Category: {book_info[0][10]}')
 
     def display(self, event, search_by):
         self.display_books(event, search_by)

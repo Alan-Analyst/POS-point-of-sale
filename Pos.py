@@ -5,7 +5,7 @@ import sqlite3
 from playsound import playsound
 from datetime import datetime
 from tkinter import messagebox
-# import win32print
+import win32print
 
 
 with sqlite3.connect("c_bookshop_db.db") as db:
@@ -41,7 +41,6 @@ class Pos(ct.CTkFrame):
         for i in range(9):
             self.frame_left_child.rowconfigure(i, weight=0)
         self.frame_left_child.rowconfigure(99, weight=1)
-
 
         # Right Frame a
         self.frame_right_a = ct.CTkFrame(self.parent_frame, corner_radius=0, fg_color='transparent')
@@ -139,6 +138,20 @@ class Pos(ct.CTkFrame):
         self.btn_print = ct.CTkButton(self.frame_left_child, text='Print Receipt', height=40,
                                       command=self.print_receipt, fg_color='#E74C3C', text_color='black')
         self.btn_print.grid(row=8, column=2, sticky='W')
+
+        # Information
+        with open('settings.ini', 'r') as f:
+            self.cashier_name = f.read()
+
+        self.cashier_lbl = ct.CTkLabel(self.frame_left_child, text=f'Cashier: {self.cashier_name}',
+                                       font=ct.CTkFont(size=20, weight="bold"), text_color='red')
+        self.cashier_lbl.grid(row=9, column=0, columnspan=2, sticky='WS')
+
+        default_printer_name = win32print.GetDefaultPrinter()
+        self.cashier_lbl = ct.CTkLabel(self.frame_left_child, text=f'Default Printer: {default_printer_name}',
+                                       font=ct.CTkFont(size=20, weight="bold"), text_color='red')
+        self.cashier_lbl.grid(row=10, column=0, columnspan=2, sticky='WS')
+
         self.status_bar = ct.CTkLabel(self.frame_left_child, text='', font=ct.CTkFont(size=14, weight="bold"))
         self.status_bar.grid(row=99, column=0, columnspan=1, sticky='EWS')
 
@@ -188,9 +201,9 @@ class Pos(ct.CTkFrame):
         self.subtotal_price, self.discount, self.total_price = float(0), float(0), float(0)
         self.change, self.payment = float(0), float(0)
         self.qty = int(1)
-        self.cashier = 'Alan'
         self.btn_print.configure(state='disabled')
         self.btn_next.configure(state='disabled')
+        self.btn_payment.configure(state='disabled')
 
         ############
         # Bindings #
@@ -236,6 +249,7 @@ class Pos(ct.CTkFrame):
         self.discount, self.payment, self.change = 0, 0, 0
         self.btn_print.configure(state='disabled')
         self.btn_next.configure(state='disabled')
+        self.btn_payment.configure(state='disabled')
 
     def calculate_subtotal(self):
         self.subtotal_price = float(0)
@@ -286,7 +300,6 @@ class Pos(ct.CTkFrame):
                        (scan_formatted,))
         result = cursor.fetchone()
         if result:
-            self.btn_print.configure(state='normal')
             if self.check_barcode_exists(result):
                 self.not_exit_sound(self)
             else:
@@ -297,8 +310,7 @@ class Pos(ct.CTkFrame):
                 self.ent_scan.delete('0', tk.END)
                 self.calculate_subtotal()
                 self.calculate_total()
-                self.btn_print.configure(state='normal')
-                self.btn_next.configure(state='normal')
+                self.btn_payment.configure(state='normal')
         else:
             self.not_exit_sound(self)
             self.btn_print.configure(state='disabled')
@@ -308,6 +320,8 @@ class Pos(ct.CTkFrame):
         self.payment = dialog.get_input()
         if self.payment:
             self.calculate_change()
+        self.btn_print.configure(state='normal')
+        self.btn_next.configure(state='normal')
         return self.payment
 
     def calculate_change(self):
@@ -354,13 +368,45 @@ class Pos(ct.CTkFrame):
         if len(self.tree_view.get_children()) != 0:
             now = datetime.now()
             datetime_now = now.strftime("%Y-%m-%d %H:%M")
-            data = (datetime_now, self.cashier, self.calculate_total(),
-                    self.calculate_change(), self.cashier)
+
+            # Execute the query to check if the first row, first column of the sales table with ID 0 is null or not
+            cursor.execute("SELECT * FROM Sales LIMIT 1")
+            result = cursor.fetchone()
+
+            # Check the value of the result
+            if result:
+                # Get the values for the first row of the Treeview
+                items = self.tree_view.get_children()
+
+                # Iterate through the items and get their values
+                for item in items:
+                    # Get the last row
+                    cursor.execute("SELECT * FROM Sales ORDER BY rowid DESC LIMIT 1")
+                    result = cursor.fetchone()
+                    receipt_number = result[0] + 1
+                    values = self.tree_view.item(item)['values']
+                    data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2], values[4])
+                    # Insert tuple book_info into the database
+                    cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
+                                              total)VALUES (?, ?, ?, ?, ?, ?, ?)''', data)
+                    db.commit()
+            else:
+                # Get the values for the first row of the Treeview
+                items = self.tree_view.get_children()
+
+                # Iterate through the items and get their values
+                for item in items:
+                    receipt_number = 1000
+                    values = self.tree_view.item(item)['values']
+                    data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2],
+                            values[4])
+                    # Insert tuple book_info into the database
+                    # Insert tuple book_info into the database
+                    cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
+                            total)VALUES (?, ?, ?, ?, ?, ?, ?)''', data)
+                    db.commit()
 
             self.clear_tree_view()
-            # print(data)
-        # else:
-        #     # print('not empty')
 
     def print_receipt(self):
         """Handle printing the receipt"""

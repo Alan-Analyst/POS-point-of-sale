@@ -30,6 +30,7 @@ qty	INTEGER NOT NULL DEFAULT 0,
 cover INTEGER NOT NULL DEFAULT 0, 
 copy INTEGER NOT NULL DEFAULT 0,
 date_added TEXT,
+category TEXT,
 PRIMARY KEY(id AUTOINCREMENT)
 );''')
 
@@ -126,7 +127,7 @@ class Application(ct.CTk):
         self.image_exit = ct.CTkImage(Image.open("images/exit.png"), size=(40, 40))
         self.btn_exit = ct.CTkButton(self.frame_top, text='X', font=('arial', 28, 'bold'),
                                      compound='left', height=53, width=38, fg_color='#E74C3C', text_color='white',
-                                     hover_color='white',
+                                     hover_color='red',
                                      command=lambda: root.destroy())
         self.btn_exit.grid(row=0, column=7, padx=10, pady=10, sticky='e')
 
@@ -139,7 +140,7 @@ class Application(ct.CTk):
     def show_frame(self, container):
         frame = self.frames[container]
         frame.tkraise()
-a
+
 
 # Root window
 if __name__ == "__main__":
