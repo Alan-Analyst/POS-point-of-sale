@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from style import *
 import customtkinter as ct
 import webbrowser
 

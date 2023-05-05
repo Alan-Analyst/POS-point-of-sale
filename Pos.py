@@ -6,7 +6,11 @@ from playsound import playsound
 from datetime import datetime
 from tkinter import messagebox
 import win32print
+from escpos.printer import Usb
+from escpos.exceptions import USBNotFoundError
 
+import configparser
+import openpyxl
 
 with sqlite3.connect("c_bookshop_db.db") as db:
     cursor = db.cursor()
@@ -143,14 +147,36 @@ class Pos(ct.CTkFrame):
         with open('settings.ini', 'r') as f:
             self.cashier_name = f.read()
 
-        self.cashier_lbl = ct.CTkLabel(self.frame_left_child, text=f'Cashier: {self.cashier_name}',
-                                       font=ct.CTkFont(size=20, weight="bold"), text_color='red')
-        self.cashier_lbl.grid(row=9, column=0, columnspan=2, sticky='WS')
+        # Read the settings file
+        config = configparser.ConfigParser()
+        config.read('settings.ini')
+
+        # Get the values
+        self.cashier_name = config.get('info', 'cashier')
+        self.shop_name = config.get('info', 'shop')
+        self.address = config.get('info', 'address')
+        self.phone = config.get('info', 'phone')
+
+        self.lbl_cashier = ct.CTkLabel(self.frame_left_child, text=f'Cashier: {self.cashier_name}',
+                                       font=ct.CTkFont(size=16, weight="bold"), text_color='red')
+        self.lbl_cashier.grid(row=9, column=0, columnspan=3, sticky='WS')
+
+        self.lbl_shop = ct.CTkLabel(self.frame_left_child, text=f'Shop: {self.shop_name}',
+                                    font=ct.CTkFont(size=16, weight="bold"), text_color='red')
+        self.lbl_shop.grid(row=10, column=0, columnspan=3, sticky='WS')
+
+        self.lbl_address = ct.CTkLabel(self.frame_left_child, text=f'Address: {self.address}',
+                                       font=ct.CTkFont(size=16, weight="bold"), text_color='red')
+        self.lbl_address.grid(row=11, column=0, columnspan=3, sticky='WS')
+
+        self.lbl_phone = ct.CTkLabel(self.frame_left_child, text=f'Bookstore: {self.phone}',
+                                     font=ct.CTkFont(size=16, weight="bold"), text_color='red')
+        self.lbl_phone.grid(row=12, column=0, columnspan=3, sticky='WS')
 
         default_printer_name = win32print.GetDefaultPrinter()
         self.cashier_lbl = ct.CTkLabel(self.frame_left_child, text=f'Default Printer: {default_printer_name}',
-                                       font=ct.CTkFont(size=20, weight="bold"), text_color='red')
-        self.cashier_lbl.grid(row=10, column=0, columnspan=2, sticky='WS')
+                                       font=ct.CTkFont(size=16, weight="bold"), text_color='red')
+        self.cashier_lbl.grid(row=13, column=0, columnspan=3, sticky='WS')
 
         self.status_bar = ct.CTkLabel(self.frame_left_child, text='', font=ct.CTkFont(size=14, weight="bold"))
         self.status_bar.grid(row=99, column=0, columnspan=1, sticky='EWS')
@@ -201,6 +227,7 @@ class Pos(ct.CTkFrame):
         self.subtotal_price, self.discount, self.total_price = float(0), float(0), float(0)
         self.change, self.payment = float(0), float(0)
         self.qty = int(1)
+        self.data = tuple()
         self.btn_print.configure(state='disabled')
         self.btn_next.configure(state='disabled')
         self.btn_payment.configure(state='disabled')
@@ -317,7 +344,7 @@ class Pos(ct.CTkFrame):
 
     def get_payment(self):
         dialog = ct.CTkInputDialog(text="Type in the payment:", title="Payment")
-        self.payment = dialog.get_input()
+        self.payment = float(dialog.get_input())
         if self.payment:
             self.calculate_change()
         self.btn_print.configure(state='normal')
@@ -364,7 +391,7 @@ class Pos(ct.CTkFrame):
 
     def next_customer(self):
         """Insert receipt data into the database Sales table"""
-        data = tuple()
+        self.data = tuple()
         if len(self.tree_view.get_children()) != 0:
             now = datetime.now()
             datetime_now = now.strftime("%Y-%m-%d %H:%M")
@@ -385,10 +412,10 @@ class Pos(ct.CTkFrame):
                     result = cursor.fetchone()
                     receipt_number = result[0] + 1
                     values = self.tree_view.item(item)['values']
-                    data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2], values[4])
+                    self.data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2], values[4])
                     # Insert tuple book_info into the database
                     cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
-                                              total)VALUES (?, ?, ?, ?, ?, ?, ?)''', data)
+                                              total)VALUES (?, ?, ?, ?, ?, ?, ?)''', self.data)
                     db.commit()
             else:
                 # Get the values for the first row of the Treeview
@@ -401,7 +428,6 @@ class Pos(ct.CTkFrame):
                     data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2],
                             values[4])
                     # Insert tuple book_info into the database
-                    # Insert tuple book_info into the database
                     cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
                             total)VALUES (?, ?, ?, ?, ?, ?, ?)''', data)
                     db.commit()
@@ -410,97 +436,104 @@ class Pos(ct.CTkFrame):
 
     def print_receipt(self):
         """Handle printing the receipt"""
-        # data = tuple()
-        # data2 = {'subtotal': self.subtotal_price, 'total': self.total_price, 'payment': self.payment,
-        #          'change': self.change, 'discount': self.discount}
-        # print(data2)
-        # if len(self.tree_view.get_children()) != 0:
-        #     now = datetime.now()
-        #     datetime_now = now.strftime("%Y-%m-%d %H:%M")
-        #     data = (datetime_now, self.cashier, self.calculate_total(),
-        #             self.calculate_change(), self.cashier)
-        #
-        #     printer_name = win32print.GetDefaultPrinter()
-        #     self.status_bar.configure(text=printer_name)
-        #
-        #     # Set up printer information
-        #     # raw_data = b"\x1B\x40data\n\x1D\x56\x41\x10"
-        #
-        #     # Define the receipt data
-        #     shop_name = "Cambridge Bookshop"
-        #     address = "Erbil, Kirkuk Road"
-        #     phone = "0751 242 8015"
-        #     receipt_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        #     # count the number of rows
-        #     # items = 0
-        #     # for child in self.tree_view.get_children():
-        #     #     title = self.tree_view.item(child, option="values")[1]
-        #     #     price = self.tree_view.item(child, option="values")[2]
-        #     #     items = {"title": title, "price": price}
-        #     #
-        #     # total_price = 23
-        #     #
-        #     # # Define the receipt text
-        #     # receipt_text = f"""
-        #     # {shop_name}
-        #     # {address}
-        #     # Phone: {phone}
-        #     # Receipt Date: {receipt_date}
-        #     #
-        #     # {'=' * 30}
-        #     # Title                    Price
-        #     # {'-' * 30}
-        #     # """
-        #     # for item in items:
-        #     #     receipt_text += f"{item['title']:24} ${item['price']:6.2f}\n"
-        #     #
-        #     # receipt_text += f"""
-        #     # {'-' * 30}
-        #     # Total:                  ${total_price:6.2f}
-        #     # {'=' * 30}
-        #     # Thank you for your business!
-        #     # """
-        #     receipt = ""
-        #     total = 0
-        #
-        #     # iterate over all the items in the Treeview
-        #     for child in self.tree_view.get_children():
-        #         item = self.tree_view.item(child, option="values")
-        #         title = item[1]
-        #         price = float(item[2])
-        #         print(title)
-        #         print(price)
-        #
-        #         # add the book title and price to the receipt
-        #         receipt += f"{title}: ${price:.2f}\n"
-        #
-        #         # keep track of the total price
-        #         total += price
-        #
-        #     # add the total price to the receipt
-        #     receipt += f"\nTotal: {total:.2f}"
-        #
-        #     raw_data = f'b"\x1B\x40{receipt}\n\x1D\x56\x41\x10"'
-        #
-        #     # Convert the raw data to bytes
-        #     raw_data_bytes = bytes(raw_data, encoding="utf-8")
-        #
-        #     # Open printer and print data
-        #     hPrinter = win32print.OpenPrinter(printer_name)
-        #     try:
-        #         # Start a new print job
-        #         job_name = "Sale Receipt"
-        #         hJob = win32print.StartDocPrinter(hPrinter, 1, (job_name, None, "RAW"))
-        #
-        #         # Send the data to the printer
-        #         win32print.StartPagePrinter(hPrinter)
-        #         win32print.WritePrinter(hPrinter, raw_data_bytes)
-        #         win32print.EndPagePrinter(hPrinter)
-        #
-        #     finally:
-        #         # Close the printer
-        #         win32print.EndDocPrinter(hPrinter)
-        #         win32print.ClosePrinter(hPrinter)
+        if len(self.tree_view.get_children()) != 0:
+
+            printer_name = win32print.GetDefaultPrinter()
+            self.status_bar.configure(text=printer_name)
+
+            # Set up printer information
+            raw_data = b"\x1B\x40data\n\x1D\x56\x41\x10"
+
+            #####################
+            # Sale receipt info #
+            #####################
+
+            # Define the receipt data
+            receipt_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            wb = openpyxl.Workbook()
+            sheet = wb.active
+
+#             # Define the receipt text
+#             receipt_text = f"""{self.shop_name}\n{self.address}\nPhone: {self.phone}\nDatetime: {receipt_date}
+# Cashier: {self.cashier_name}
+# {'=' * 45}
+# Title                          Qty  Price
+# {'-' * 45}
+# """
+            sheet['A1'] = self.shop_name
+            sheet['A2'] = self.address
+            sheet['A3'] = self.phone
+            sheet['A4'] = receipt_date
+
+            # Get the values for the first row of the Treeview
+            items = self.tree_view.get_children()
+
+            sheet['A5'] = 'Title'
+            sheet['B5'] = 'Qty'
+            sheet['C5'] = 'Price'
+            i = 6
+            # Iterate through the items and get their values
+            for item in items:
+                receipt_number = 1000
+                values = self.tree_view.item(item)['values']
+                data = (receipt_number, receipt_date, self.cashier_name, values[1], values[3], values[2],
+                        values[4])
+
+                # receipt_text += f'{values[1][:25]}      {values[3]}    {values[4]} IQD\n'
+                sheet[f'A{i}'] = f'{values[1][:25]}'
+                sheet[f'B{i}'] = f'{values[3]}'
+                sheet[f'C{i}'] = f'{values[4]}'
+                i += 1
+#             receipt_text += f"""{'-' * 45}
+# Subtotal:                         {self.subtotal_price:6.2f}IQD
+# Discount:                         {self.discount:6.2f}%
+# Total:                            {self.total_price:6.2f}IQD
+# Payment:                          {self.payment:6.2f}IQD
+# Change:                           {self.change:6.2f}IQD
+# {'=' * 45}
+# Thank you for your purchase!
+# """
+
+            sheet[f'A{i}'] = 'Subtotal:'
+            sheet[f'C{i}'] = f'{self.subtotal_price}IQD'
+
+            sheet[f'A{i + 1}'] = 'Discount:'
+            sheet[f'C{i + 1}'] = f'{self.discount}%'
+
+            sheet[f'A{i + 2}'] = 'Total:'
+            sheet[f'C{i + 2}'] = f'{self.total_price}IQD'
+
+            sheet[f'A{i + 3}'] = 'Payment:'
+            sheet[f'C{i + 3}'] = f'{self.payment}IQD'
+
+            sheet[f'A{i + 4}'] = 'Change:'
+            sheet[f'C{i + 4}'] = f'{self.change}IQD'
+            wb.save('sale_receipt.xlsx')
+            print(sheet)
+
+
+            raw_data = f'b"\x1B\x40{sheet}\n\x1D\x56\x41\x10"'
+
+            # Convert the raw data to bytes
+            raw_data_bytes = bytes(raw_data, encoding="utf-8")
+
+            # Open printer and print data
+            hPrinter = win32print.OpenPrinter(printer_name)
+            try:
+                # Start a new print job
+                job_name = "Sale Receipt"
+                hJob = win32print.StartDocPrinter(hPrinter, 1, (job_name, None, "RAW"))
+
+                # Send the data to the printer
+                win32print.StartPagePrinter(hPrinter)
+                win32print.WritePrinter(hPrinter, raw_data_bytes)
+                win32print.EndPagePrinter(hPrinter)
+
+            finally:
+                # Close the printer
+                win32print.EndDocPrinter(hPrinter)
+                win32print.ClosePrinter(hPrinter)
 
     @staticmethod
     def not_exit_sound(self):
