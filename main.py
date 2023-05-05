@@ -1,16 +1,13 @@
-import tkinter as tk
-from tkinter import ttk
 import sqlite3
-from tkinter import messagebox as messagebox
 from item_list import ItemList
 from Pos import Pos
 from about import About
 from preferences import Preferences
 from reports import Reports
-from end_of_day import EndOfDay
 from add_book import AddBook
 import customtkinter as ct
-from PIL import Image, Image
+from PIL import Image
+import configparser
 
 # Connecting with the database if already exists, if it's not create a new one
 with sqlite3.connect("c_bookshop_db.db") as db:
@@ -35,20 +32,18 @@ PRIMARY KEY(id AUTOINCREMENT)
 );''')
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS Sales(
-receipt_number	INTEGER NOT NULL UNIQUE,
+receipt_number	INTEGER NOT NULL,
 date	TEXT,
 cashier	TEXT,
 book	TEXT,
 qty	INTEGER,
 price	REAL,
-total	REAL,
-PRIMARY KEY(receipt_number AUTOINCREMENT)
+total	REAL
 ); ''')
 
 
 ct.set_appearance_mode("light")  # Modes: "System" (standard), "Dark", "Light"
-ct.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
-ct.set_default_color_theme("dark-blue")
+ct.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 
 class Application(ct.CTk):
@@ -82,60 +77,54 @@ class Application(ct.CTk):
 
         # Toolbox buttons
         # Make a sale button
-        self.image_make_a_sale = ct.CTkImage(Image.open("images/point-of-sale.png"), size=(40, 40))
-        self.btn_make_a_sale = ct.CTkButton(self.frame_top, image=self.image_make_a_sale, compound='left',
+        self.img_make_a_sale = ct.CTkImage(Image.open("images/point-of-sale.png"), size=(40, 40))
+        self.btn_make_a_sale = ct.CTkButton(self.frame_top, image=self.img_make_a_sale, compound='left',
                                             text='Make a Sale', font=('arial', 16, 'bold'), height=50,
                                             command=lambda: self.show_frame(Pos))
         self.btn_make_a_sale.grid(row=0, column=0, padx=(10, 2), pady=10, ipady=3, ipadx=3)
 
         # Add book button
-        self.image_add_book = ct.CTkImage(Image.open("images/add_book.png"), size=(40, 40))
+        self.img_add_book = ct.CTkImage(Image.open("images/add_book.png"), size=(40, 40))
         self.btn_item_list = ct.CTkButton(self.frame_top, text='Add Book', font=('arial', 16, 'bold'),
-                                          image=self.image_add_book, compound='left', height=50,
+                                          image=self.img_add_book, compound='left', height=50,
                                           command=lambda: self.show_frame(AddBook))
         self.btn_item_list.grid(row=0, column=1, padx=2, pady=10, ipady=3, ipadx=3)
 
         # Item list button
-        self.image_item_list = ct.CTkImage(Image.open("images/database.png"), size=(40, 40))
+        self.img_item_list = ct.CTkImage(Image.open("images/database.png"), size=(40, 40))
         self.btn_item_list = ct.CTkButton(self.frame_top, text='Inventory', font=('arial', 16, 'bold'),
-                                          image=self.image_item_list, compound='left', height=50,
+                                          image=self.img_item_list, compound='left', height=50,
                                           command=lambda: self.show_frame(ItemList))
         self.btn_item_list.grid(row=0, column=2, padx=2, pady=10, ipady=3, ipadx=3)
 
         # Reports button
-        self.image_reports = ct.CTkImage(Image.open("images/accounting.png"), size=(40, 40))
+        self.img_reports = ct.CTkImage(Image.open("images/reports.png"), size=(40, 40))
         self.btn_reports = ct.CTkButton(self.frame_top, text='Reports', font=('arial', 16, 'bold'),
-                                        image=self.image_reports, compound='left', height=50,
+                                        image=self.img_reports, compound='left', height=50,
                                         command=lambda: self.show_frame(Reports))
         self.btn_reports.grid(row=0, column=3, padx=2, pady=10, ipady=3, ipadx=3)
 
         # Preference button
-        self.image_preferences = ct.CTkImage(Image.open("images/control.png"), size=(40, 40))
+        self.img_preferences = ct.CTkImage(Image.open("images/preferences.png"), size=(40, 40))
         self.btn_preferences = ct.CTkButton(self.frame_top, text='Preferences', font=('arial', 16, 'bold'),
-                                            image=self.image_preferences, compound='left', height=50,
+                                            image=self.img_preferences, compound='left', height=50,
                                             command=lambda: self.show_frame(Preferences))
         self.btn_preferences.grid(row=0, column=5, padx=2, pady=10, ipady=3, ipadx=3)
 
         # About button
-        self.image_about = ct.CTkImage(Image.open("images/about.png"), size=(40, 40))
-        self.btn_about = ct.CTkButton(self.frame_top, text='About', font=('arial', 16, 'bold'), image=self.image_about,
+        self.img_about = ct.CTkImage(Image.open("images/about.png"), size=(40, 40))
+        self.btn_about = ct.CTkButton(self.frame_top, text='About', font=('arial', 16, 'bold'), image=self.img_about,
                                       compound='left', height=50,
                                       command=lambda: self.show_frame(About))
         self.btn_about.grid(row=0, column=6, padx=2, pady=10, ipady=3, ipadx=3)
 
         # Exit button
-        self.image_exit = ct.CTkImage(Image.open("images/exit.png"), size=(40, 40))
+        self.img_exit = ct.CTkImage(Image.open("images/exit.png"), size=(40, 40))
         self.btn_exit = ct.CTkButton(self.frame_top, text='X', font=('arial', 28, 'bold'),
                                      compound='left', height=53, width=38, fg_color='#E74C3C', text_color='white',
                                      hover_color='red',
                                      command=lambda: root.destroy())
         self.btn_exit.grid(row=0, column=7, padx=10, pady=10, sticky='e')
-
-    # self.appearance_mode_label = ct.CTkLabel(self.frame_top, text="Appearance Mode:", anchor="w")
-    # self.appearance_mode_label.grid(row=0, column=7, padx=7, pady=(10, 10))
-    # self.appearance_mode_option_menu = ct.CTkOptionMenu(self.frame_top, values=["Light", "Dark", "System"],
-    #                                                     command=self.change_appearance_mode_event, height=40)
-    # self.appearance_mode_option_menu.grid(row=0, column=8, padx=4, pady=(10, 10))
 
     def show_frame(self, container):
         frame = self.frames[container]
@@ -145,11 +134,19 @@ class Application(ct.CTk):
 # Root window
 if __name__ == "__main__":
     root = Application()
-    root.title('Cambridge Bookshop Point of Sale 2023')
+
+    # Read the settings file
+    config = configparser.ConfigParser()
+    config.read('settings.ini')
+
+    root.title(f'{config.get("info", "shop")} Point of Sale 2023')
+
     root.iconbitmap('images/point-of-sale.ico')
     # set the window state to full screen
-    # set the window to full screen
-    root.overrideredirect(True)
+    if config.get("settings", "full_screen") == 'True':
+        root.overrideredirect(True)
+    else:
+        root.overrideredirect(False)
 
     # get the width and height of the screen
     screen_width = root.winfo_screenwidth()
