@@ -393,41 +393,22 @@ class Pos(ct.CTkFrame):
             now = datetime.now()
             datetime_now = now.strftime("%Y-%m-%d %H:%M")
 
-            # Execute the query to check if the first row, first column of the sales table with ID 0 is null or not
-            cursor.execute("SELECT * FROM Sales LIMIT 1")
-            result = cursor.fetchone()
+            # Get the values for the first row of the Treeview
+            items = self.tree_view.get_children()
 
-            # Check the value of the result
-            if result:
-                # Get the values for the first row of the Treeview
-                items = self.tree_view.get_children()
-
-                # Iterate through the items and get their values
-                for item in items:
-                    # Get the last row
-                    cursor.execute("SELECT * FROM Sales ORDER BY rowid DESC LIMIT 1")
-                    result = cursor.fetchone()
-                    receipt_number = result[0] + 1
-                    values = self.tree_view.item(item)['values']
-                    self.data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2], values[4])
-                    # Insert tuple book_info into the database
-                    cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
-                                              total)VALUES (?, ?, ?, ?, ?, ?, ?)''', self.data)
-                    db.commit()
-            else:
-                # Get the values for the first row of the Treeview
-                items = self.tree_view.get_children()
-
-                # Iterate through the items and get their values
-                for item in items:
-                    receipt_number = 1000
-                    values = self.tree_view.item(item)['values']
-                    data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2],
-                            values[4])
-                    # Insert tuple book_info into the database
-                    cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
-                            total)VALUES (?, ?, ?, ?, ?, ?, ?)''', data)
-                    db.commit()
+            # Iterate through the items and get their values
+            for item in items:
+                # Get the last row
+                cursor.execute("SELECT * FROM Sales ORDER BY rowid DESC LIMIT 1")
+                result = cursor.fetchone()
+                receipt_number = result[0] + 1
+                values = self.tree_view.item(item)['values']
+                self.data = (self.get_receipt_number(), datetime_now, self.cashier_name, values[1], values[3], values[2]
+                             , values[4])
+                # Insert tuple book_info into the database
+                cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
+                                          total)VALUES (?, ?, ?, ?, ?, ?, ?)''', self.data)
+                db.commit()
 
             self.clear_tree_view()
 
@@ -438,9 +419,6 @@ class Pos(ct.CTkFrame):
             printer_name = win32print.GetDefaultPrinter()
             self.status_bar.configure(text=printer_name)
 
-            # Set up printer information
-            raw_data = b"\x1B\x40data\n\x1D\x56\x41\x10"
-
             #####################
             # Sale receipt info #
             #####################
@@ -450,7 +428,7 @@ class Pos(ct.CTkFrame):
 
             # Define the receipt text
             receipt_text = f"""{self.shop_name}\n{self.address}\nPhone: {self.phone}\nDatetime: {receipt_date}
-Cashier: {self.cashier_name}
+Cashier: {self.cashier_name}\nReceipt #: {self.get_receipt_number()}
 {'=' * 45}
 Title                          Qty  Price
 {'-' * 45}
@@ -510,7 +488,24 @@ Thank you for your purchase!
                 win32print.ClosePrinter(h_printer)
 
     @staticmethod
-    def not_exit_sound(self):
+    def get_receipt_number():
+        # Execute the query to check if the first row, first column of the sales table with ID 0 is null or not
+        cursor.execute("SELECT * FROM Sales LIMIT 1")
+        result = cursor.fetchone()
+
+        # Check the value of the result
+        if result:
+            cursor.execute("SELECT * FROM Sales ORDER BY rowid DESC LIMIT 1")
+            result = cursor.fetchone()
+            receipt_number = result[0] + 1
+
+        else:
+            receipt_number = 1000
+
+        return receipt_number
+
+    @staticmethod
+    def not_exit_sound():
         # replace the path with the path to your sound file
         sound_file_path = 'sound/beep-beep-6151.mp3'
         playsound(sound_file_path)
