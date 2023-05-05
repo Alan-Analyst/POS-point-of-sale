@@ -6,11 +6,7 @@ from playsound import playsound
 from datetime import datetime
 from tkinter import messagebox
 import win32print
-from escpos.printer import Usb
-from escpos.exceptions import USBNotFoundError
-
 import configparser
-import openpyxl
 
 with sqlite3.connect("c_bookshop_db.db") as db:
     cursor = db.cursor()
@@ -383,6 +379,7 @@ class Pos(ct.CTkFrame):
             self.discount = float(dialog.get_input())
             self.lbl_discount.configure(text=f'{self.discount} %')
             self.calculate_total()
+            self.calculate_change()
 
     def on_select_qty_update(self, event):
         item = event.widget.selection()[0]
@@ -451,89 +448,66 @@ class Pos(ct.CTkFrame):
             # Define the receipt data
             receipt_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            wb = openpyxl.Workbook()
-            sheet = wb.active
-
-#             # Define the receipt text
-#             receipt_text = f"""{self.shop_name}\n{self.address}\nPhone: {self.phone}\nDatetime: {receipt_date}
-# Cashier: {self.cashier_name}
-# {'=' * 45}
-# Title                          Qty  Price
-# {'-' * 45}
-# """
-            sheet['A1'] = self.shop_name
-            sheet['A2'] = self.address
-            sheet['A3'] = self.phone
-            sheet['A4'] = receipt_date
+            # Define the receipt text
+            receipt_text = f"""{self.shop_name}\n{self.address}\nPhone: {self.phone}\nDatetime: {receipt_date}
+Cashier: {self.cashier_name}
+{'=' * 45}
+Title                          Qty  Price
+{'-' * 45}
+"""
 
             # Get the values for the first row of the Treeview
             items = self.tree_view.get_children()
 
-            sheet['A5'] = 'Title'
-            sheet['B5'] = 'Qty'
-            sheet['C5'] = 'Price'
-            i = 6
             # Iterate through the items and get their values
             for item in items:
                 receipt_number = 1000
                 values = self.tree_view.item(item)['values']
-                data = (receipt_number, receipt_date, self.cashier_name, values[1], values[3], values[2],
-                        values[4])
 
-                # receipt_text += f'{values[1][:25]}      {values[3]}    {values[4]} IQD\n'
-                sheet[f'A{i}'] = f'{values[1][:25]}'
-                sheet[f'B{i}'] = f'{values[3]}'
-                sheet[f'C{i}'] = f'{values[4]}'
-                i += 1
-#             receipt_text += f"""{'-' * 45}
-# Subtotal:                         {self.subtotal_price:6.2f}IQD
-# Discount:                         {self.discount:6.2f}%
-# Total:                            {self.total_price:6.2f}IQD
-# Payment:                          {self.payment:6.2f}IQD
-# Change:                           {self.change:6.2f}IQD
-# {'=' * 45}
-# Thank you for your purchase!
-# """
+                length = len(values[1][:25])
 
-            sheet[f'A{i}'] = 'Subtotal:'
-            sheet[f'C{i}'] = f'{self.subtotal_price}IQD'
+                if length == 25:
+                    length = 6
+                elif length <= 25:
+                    length = 25 - len(values[1][:25])
+                    length += 6
 
-            sheet[f'A{i + 1}'] = 'Discount:'
-            sheet[f'C{i + 1}'] = f'{self.discount}%'
-
-            sheet[f'A{i + 2}'] = 'Total:'
-            sheet[f'C{i + 2}'] = f'{self.total_price}IQD'
-
-            sheet[f'A{i + 3}'] = 'Payment:'
-            sheet[f'C{i + 3}'] = f'{self.payment}IQD'
-
-            sheet[f'A{i + 4}'] = 'Change:'
-            sheet[f'C{i + 4}'] = f'{self.change}IQD'
-            wb.save('sale_receipt.xlsx')
-            print(sheet)
-
-
-            raw_data = f'b"\x1B\x40{sheet}\n\x1D\x56\x41\x10"'
+                if len(str(values[3])) == 1:
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 4}{values[4]} IQD\n'
+                elif len(str(values[3])) == 2:
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 3}{values[4]} IQD\n'
+                else:
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 2}{values[4]} IQD\n'
+            receipt_text += f"""{'-' * 45}
+Subtotal:{' ' * 25}{self.subtotal_price:6.2f}IQD
+Discount:{' ' * 25}{self.discount:6.2f}%
+Total:{' ' * 28}{self.total_price:6.2f}IQD
+Payment:{' ' * 26}{self.payment:6.2f}IQD
+Change:{' ' * 27}{self.change:6.2f}IQD
+{'=' * 45}
+Thank you for your purchase!
+"""
+            raw_data = f'b"\x1B\x40{receipt_text}\n\x1D\x56\x41\x10"'
 
             # Convert the raw data to bytes
             raw_data_bytes = bytes(raw_data, encoding="utf-8")
 
             # Open printer and print data
-            hPrinter = win32print.OpenPrinter(printer_name)
+            h_printer = win32print.OpenPrinter(printer_name)
             try:
                 # Start a new print job
                 job_name = "Sale Receipt"
-                hJob = win32print.StartDocPrinter(hPrinter, 1, (job_name, None, "RAW"))
+                h_job = win32print.StartDocPrinter(h_printer, 1, (job_name, None, "RAW"))
 
                 # Send the data to the printer
-                win32print.StartPagePrinter(hPrinter)
-                win32print.WritePrinter(hPrinter, raw_data_bytes)
-                win32print.EndPagePrinter(hPrinter)
+                win32print.StartPagePrinter(h_printer)
+                win32print.WritePrinter(h_printer, raw_data_bytes)
+                win32print.EndPagePrinter(h_printer)
 
             finally:
                 # Close the printer
-                win32print.EndDocPrinter(hPrinter)
-                win32print.ClosePrinter(hPrinter)
+                win32print.EndDocPrinter(h_printer)
+                win32print.ClosePrinter(h_printer)
 
     @staticmethod
     def not_exit_sound(self):
