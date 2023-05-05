@@ -17,7 +17,7 @@ class Pos(ct.CTkFrame):
         super().__init__(container)
         ##########
         # Frames #
-        ##########
+        ###########
         self.grid_rowconfigure(0, weight=1)  # configure grid system
         self.grid_columnconfigure(0, weight=1)
 
