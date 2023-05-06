@@ -439,7 +439,6 @@ Title                          Qty  Price
 
             # Iterate through the items and get their values
             for item in items:
-                receipt_number = 1000
                 values = self.tree_view.item(item)['values']
 
                 length = len(values[1][:25])
