@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 import customtkinter as ct
 from tkinter import messagebox
 import configparser
@@ -26,7 +25,8 @@ class Preferences(ct.CTkFrame):
         self.frame_info.grid(row=0, column=0, padx=10, pady=10, sticky='NW')
 
         # Cashier Name
-        self.lbl_cashier = ct.CTkLabel(self.frame_info, text=f'Cashier Name: {self.cashier_name}', font=ct.CTkFont(size=18))
+        self.lbl_cashier = ct.CTkLabel(self.frame_info, text=f'Cashier Name: {self.cashier_name}',
+                                       font=ct.CTkFont(size=18))
         self.lbl_cashier.grid(row=0, column=0, padx=10, pady=10, sticky='W')
 
         self.ent_cashier = ct.CTkEntry(self.frame_info)
@@ -53,7 +53,8 @@ class Preferences(ct.CTkFrame):
         self.ent_phone = ct.CTkEntry(self.frame_info)
         self.ent_phone.grid(row=3, column=1, padx=10, pady=10, sticky='W')
 
-        self.switch_var = ct.StringVar(value="on")
+
+        self.switch_var = ct.StringVar(value=config.get('settings', 'switch'))
 
 
 
@@ -73,8 +74,10 @@ class Preferences(ct.CTkFrame):
         if self.switch_var.get() == 'on':
             # Change to full screen mode
             config.set('settings', 'full_screen', 'True')
+            config.set('settings', 'switch', 'on')
         else:
             config.set('settings', 'full_screen', 'False')
+            config.set('settings', 'switch', 'off')
 
         # Write the updated settings to the file
         with open('settings.ini', 'w') as configfile:
@@ -121,6 +124,3 @@ class Preferences(ct.CTkFrame):
         self.ent_shop.delete(0, tk.END)
         self.ent_address.delete(0, tk.END)
         self.ent_phone.delete(0, tk.END)
-
-
-

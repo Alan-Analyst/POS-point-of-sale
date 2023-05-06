@@ -251,7 +251,7 @@ class Pos(ct.CTkFrame):
     def ask_before_clear(self):
         choice = messagebox.askyesno('Clear?',
                                      '''Receipt information will not be saved in the database. 
-                                     Do you still want to proceed?''')
+Do you still want to proceed?''')
 
         if choice:
             self.clear_tree_view()
@@ -388,9 +388,12 @@ class Pos(ct.CTkFrame):
             pass
 
     def on_select_qty_update(self, event):
-        item = event.widget.selection()[0]
-        quantity = event.widget.item(item)['values'][3]
-        self.lbl_qty.configure(text=quantity)
+        try:
+            item = event.widget.selection()[0]
+            quantity = event.widget.item(item)['values'][3]
+            self.lbl_qty.configure(text=quantity)
+        except IndexError:
+            pass
 
     def next_customer(self):
         """Insert receipt data into the database Sales table"""
@@ -455,17 +458,17 @@ Title                          Qty  Price
                     length += 6
 
                 if len(str(values[3])) == 1:
-                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 4}{values[4]} IQD\n'
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 4}{float(values[4]):6.3f} IQD\n'
                 elif len(str(values[3])) == 2:
-                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 3}{values[4]} IQD\n'
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 3}{float(values[4]):6.3f} IQD\n'
                 else:
-                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 2}{values[4]} IQD\n'
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 2}{float(values[4]):6.3f} IQD\n'
             receipt_text += f"""{'-' * 45}
-Subtotal:{' ' * 25}{self.subtotal_price:6.2f}IQD
-Discount:{' ' * 25}{self.discount:6.2f}%
-Total:{' ' * 28}{self.total_price:6.2f}IQD
-Payment:{' ' * 26}{self.payment:6.2f}IQD
-Change:{' ' * 27}{self.change:6.2f}IQD
+Subtotal:{' ' * 25}{self.subtotal_price:6.3f}IQD
+Discount:{' ' * 25}{self.discount:6.3f}%
+Total:{' ' * 28}{self.total_price:6.3f}IQD
+Payment:{' ' * 26}{self.payment:6.3f}IQD
+Change:{' ' * 27}{self.change:6.3f}IQD
 {'=' * 45}
 Thank you for your purchase!
 """
@@ -510,6 +513,6 @@ Thank you for your purchase!
 
     @staticmethod
     def not_exit_sound():
-        # replace the path with the path to your sound file
+        # Path to sound file
         sound_file_path = 'sound/beep-beep-6151.mp3'
         playsound(sound_file_path)

@@ -4,7 +4,6 @@ import customtkinter as ct
 from tkinter import messagebox
 import datetime
 import sqlite3
-from item_list import ItemList
 
 # Connecting with the database if already exists, if it's not create a new one
 with sqlite3.connect("c_bookshop_db.db") as db:
@@ -93,14 +92,12 @@ class AddBook(ct.CTkFrame):
                                             value=2)
         self.rb_printed.grid(row=2, column=0, sticky='W', padx=10, pady=10)
 
+        # Combobox widget
         self.combobox_var = ct.StringVar(value="Not Specified")  # set initial value
 
-        def combobox_callback(choice):
-            print("combobox dropdown clicked:", choice)
-
         combobox = ct.CTkComboBox(master=self.rb_frame,
-                                  values=["Not Specified", "Fantasy", "Fiction", "Non-Fiction", "Romance", "Business"
-                                          , "Color Book", "School Book", "Academic Book", "History", "Cookbook"],
+                                  values=["Not Specified", "Fantasy", "Fiction", "Non-Fiction", "Romance", "Business",
+                                          "Color Book", "School Book", "Academic Book", "History", "Cookbook"],
                                   variable=self.combobox_var)
         combobox.grid(row=2, column=1, sticky='W', padx=10, pady=10)
 
@@ -163,7 +160,9 @@ class AddBook(ct.CTkFrame):
             self.add_book_btn, textvariable=status_variable
         ).pack(side=tk.LEFT, pady=10, padx=10)
 
-        # Data entry functions
+        ###########
+        # Methods #
+        ###########
         def on_reset():
             """Called when the reset button is clicked"""
             for variable in self.variables.values():
@@ -172,9 +171,8 @@ class AddBook(ct.CTkFrame):
 
         reset_button.configure(command=on_reset)
         self.records_saved = 0
-                
-        def on_save():
-            """Save data to the database"""
+
+        def initialize_data():
             # Get current date and time
             self.now = datetime.datetime.today().strftime('%Y-%m-%d')
             data = dict()
@@ -182,11 +180,16 @@ class AddBook(ct.CTkFrame):
                 data[key] = variable.get()
             data.update({'cover': self.cover.get(), 'copy': self.copy_quality.get(),
                          'date_added': self.now, 'category': self.combobox_var.get()})
+            return data
+
+        def on_save():
+            """Save data to the database"""
+            data = initialize_data()
 
             # Create a tuple from data dictionary
-            book_info = (data['barcode'], data['title'].title(), data['author'].title(), data['cost_price'],
-                         data['selling_price'], data['qty'], data['cover'], data['copy'], data['date_added'],
-                         data['category'])
+            book_info = (data['barcode'].strip(), data['title'].title().strip(), data['author'].title().strip(),
+                         data['cost_price'].strip(), data['selling_price'].strip(), data['qty'].strip(),
+                         data['cover'], data['copy'], data['date_added'], data['category'])
 
             # Insert tuple book_info into the database
             cursor.execute('''INSERT INTO Books (barcode, title, author, cost_price, selling_price, qty, cover, copy, 
@@ -208,7 +211,7 @@ class AddBook(ct.CTkFrame):
 
         def check():
             """Data validation and duplicate data check"""
-            data = dict()
+            data = initialize_data()
             required_fields = []
             for key, variable in self.variables.items():
                 data[key] = variable.get()
@@ -223,18 +226,19 @@ class AddBook(ct.CTkFrame):
             result = cursor.fetchone()
             if result:
                 user_input = messagebox.askquestion('Oops', '''A record with this barcode already exists. 
-                Do you want to update it?''')
+Do you want to update it?''')
                 if user_input == 'yes':
-                    cursor.execute("UPDATE Books SET title=?, author=?, cost_price=? selling_price? qty?, cover? copy?"
-                                   "data_added? WHERE barcode=?",
-                                   (data['title'].title(), data['author'].title(), data['cost_price'],
-                                    data['selling_price'], data['qty'], data['cover'], data['copy'], data['data_added'],
-                                    data['Barcode']))
+                    cursor.execute("UPDATE Books SET Title=?, Author=?, Cost_price=?, Selling_price=?, Qty=?, "
+                                   "Cover=?, Copy=?, category=? WHERE barcode=?",
+                                   (data['title'].title().strip(), data['author'].strip().title(),
+                                    data['cost_price'].strip(), data['selling_price'].strip(),
+                                    data['qty'].strip(), data['cover'], data['copy'], data['category'],
+                                    data['barcode']))
                     messagebox.showinfo("Success", "Record updated successfully!")
                     db.commit()
-                    return
+                    on_reset()
                 else:
-                    return
+                    pass
             else:
                 on_save()
 
@@ -243,10 +247,21 @@ class AddBook(ct.CTkFrame):
         def focus_next_widget(event):
             event.widget.tk_focusNext().focus()
 
-        self.barcode_entry.bind("<Return>", focus_next_widget)
+        def check_barcode_exist(event):
+            data = initialize_data()
+            cursor.execute('SELECT * FROM Books WHERE barcode = ?', (data['barcode'],))
+            result = cursor.fetchone()
+            if result:
+                messagebox.showwarning('Oops', '''An entry with this barcode already exists in the 
+database!''')
+            focus_next_widget(event)
+
+        ############
+        # Bindings #
+        ############
+        self.barcode_entry.bind("<Return>", check_barcode_exist)
         self.title_entry.bind("<Return>", focus_next_widget)
         self.author_entry.bind("<Return>", focus_next_widget)
         self.cost_price_entry.bind("<Return>", focus_next_widget)
         self.selling_price_entry.bind("<Return>", focus_next_widget)
         self.qty_entry.bind("<Return>", focus_next_widget)
-
