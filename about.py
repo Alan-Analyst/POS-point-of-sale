@@ -1,5 +1,3 @@
-import tkinter as tk
-from tkinter import ttk
 import customtkinter as ct
 import webbrowser
 
@@ -28,4 +26,3 @@ https://alananalyst.com/. Thank you for using my app!""")
 
 def open_link():
     webbrowser.open("https://www.alananalyst.com")
-

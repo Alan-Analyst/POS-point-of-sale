@@ -127,48 +127,6 @@ class Reports(ct.CTkFrame):
 
         self.tree_view.configure(show='headings')
 
-        # Select all records from the Sales table that were added today
-        today = datetime.date.today()
-        query = "SELECT * FROM Sales WHERE DATE(date) = DATE(?)"
-        cursor.execute(query, (today,))
-        sales = cursor.fetchall()
-        #
-        # # Create two lists to store the sales dates and total amounts
-        # dates = []
-        # amounts = []
-        #
-        # # Append the sales dates and total amounts to the respective lists
-        # for sale in sales:
-        #     dates.append(sale[0])
-        #     amounts.append(sale[4])
-        #
-        # # Create a figure and axis object using matplotlib
-        # fig, ax = plt.subplots()
-        #
-        # # Create a bar chart with the sales dates on the x-axis and the total amounts on the y-axis
-        # ax.bar(dates, amounts)
-        #
-        # # Set the title and axis labels for the chart
-        # ax.set_title('Daily Sales Report')
-        # ax.set_xlabel('Date')
-        # ax.set_ylabel('Total Sales Amount')
-        #
-        # # Rotate the x-axis labels for better readability
-        # plt.xticks(rotation=45)
-        #
-        # # Create a tkinter canvas and add the matplotlib chart to it
-        # canvas = tk.Canvas(self, width=600, height=400)
-        # canvas.pack()
-        # toolbar = tk.Frame(self)
-        # toolbar.grid(side=tk.BOTTOM, fill=tk.X)
-        # toolbar2 = tk.Frame(self)
-        # toolbar2.grid(side=tk.BOTTOM, fill=tk.X)
-        # plt.gcf().canvas.draw()
-        # plt.gcf().canvas.get_tk_widget().grid(side=tk.TOP, fill=tk.BOTH, expand=1)
-        #
-        # # Pack the canvas and start the tkinter event loop
-        # canvas.grid()
-
     def calculate_totals(self):
         self.total_amount = 0
         self.total_sales = len(self.tree_view.get_children())

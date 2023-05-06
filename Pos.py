@@ -251,7 +251,7 @@ class Pos(ct.CTkFrame):
     def ask_before_clear(self):
         choice = messagebox.askyesno('Clear?',
                                      '''Receipt information will not be saved in the database. 
-                                     Do you still want to proceed?''')
+Do you still want to proceed?''')
 
         if choice:
             self.clear_tree_view()
@@ -290,6 +290,7 @@ class Pos(ct.CTkFrame):
         return self.subtotal_price
 
     def calculate_total(self):
+        """Calculate Total Price"""
         self.total_price = self.subtotal_price - (self.discount / 100) * self.subtotal_price
         self.lbl_price.configure(text=self.total_price)
         self.total_price = round(self.total_price, 2)
@@ -298,7 +299,10 @@ class Pos(ct.CTkFrame):
     def change_qty(self):
         """Get qty value from using dialog widget"""
         dialog = ct.CTkInputDialog(text="Type in the quantity:", title="Change Quantity")
-        self.qty = dialog.get_input()
+        try:
+            self.qty = int(dialog.get_input())
+        except ValueError:
+            pass
         # Call calculate_with_qty function to calculate the total price
         self.calculate_with_qty(self.qty)
         self.lbl_qty.configure(text=self.qty)
@@ -324,7 +328,7 @@ class Pos(ct.CTkFrame):
         result = cursor.fetchone()
         if result:
             if self.check_barcode_exists(result):
-                self.not_exit_sound(self)
+                self.not_exit_sound()
             else:
                 qty = 1
                 self.tree_view.insert('', 'end', text='',
@@ -335,17 +339,19 @@ class Pos(ct.CTkFrame):
                 self.calculate_total()
                 self.btn_payment.configure(state='normal')
         else:
-            self.not_exit_sound(self)
+            self.not_exit_sound()
             self.btn_print.configure(state='disabled')
 
     def get_payment(self):
         dialog = ct.CTkInputDialog(text="Type in the payment:", title="Payment")
-        self.payment = float(dialog.get_input())
+        try:
+            self.payment = float(dialog.get_input())
+        except ValueError:
+            pass
         if self.payment:
             self.calculate_change()
         self.btn_print.configure(state='normal')
         self.btn_next.configure(state='normal')
-        return self.payment
 
     def calculate_change(self):
 
@@ -373,18 +379,21 @@ class Pos(ct.CTkFrame):
 
     def apply_discount(self):
         dialog = ct.CTkInputDialog(text="Apply discount in percent:", title="Discount")
-        if dialog == '':
-            pass
-        else:
+        try:
             self.discount = float(dialog.get_input())
             self.lbl_discount.configure(text=f'{self.discount} %')
             self.calculate_total()
             self.calculate_change()
+        except ValueError:
+            pass
 
     def on_select_qty_update(self, event):
-        item = event.widget.selection()[0]
-        quantity = event.widget.item(item)['values'][3]
-        self.lbl_qty.configure(text=quantity)
+        try:
+            item = event.widget.selection()[0]
+            quantity = event.widget.item(item)['values'][3]
+            self.lbl_qty.configure(text=quantity)
+        except IndexError:
+            pass
 
     def next_customer(self):
         """Insert receipt data into the database Sales table"""
@@ -396,15 +405,14 @@ class Pos(ct.CTkFrame):
             # Get the values for the first row of the Treeview
             items = self.tree_view.get_children()
 
+            # Get receipt number
+            receipt_number = self.get_receipt_number()
+
             # Iterate through the items and get their values
             for item in items:
-                # Get the last row
-                cursor.execute("SELECT * FROM Sales ORDER BY rowid DESC LIMIT 1")
-                result = cursor.fetchone()
-                receipt_number = result[0] + 1
                 values = self.tree_view.item(item)['values']
-                self.data = (self.get_receipt_number(), datetime_now, self.cashier_name, values[1], values[3], values[2]
-                             , values[4])
+                self.data = (receipt_number, datetime_now, self.cashier_name, values[1], values[3], values[2],
+                             values[4])
                 # Insert tuple book_info into the database
                 cursor.execute('''INSERT INTO Sales (receipt_number, date, cashier, book, qty, price, 
                                           total)VALUES (?, ?, ?, ?, ?, ?, ?)''', self.data)
@@ -450,17 +458,17 @@ Title                          Qty  Price
                     length += 6
 
                 if len(str(values[3])) == 1:
-                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 4}{values[4]} IQD\n'
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 4}{float(values[4]):6.3f} IQD\n'
                 elif len(str(values[3])) == 2:
-                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 3}{values[4]} IQD\n'
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 3}{float(values[4]):6.3f} IQD\n'
                 else:
-                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 2}{values[4]} IQD\n'
+                    receipt_text += f'{values[1][:25]}{" " * length}{values[3]}{" " * 2}{float(values[4]):6.3f} IQD\n'
             receipt_text += f"""{'-' * 45}
-Subtotal:{' ' * 25}{self.subtotal_price:6.2f}IQD
-Discount:{' ' * 25}{self.discount:6.2f}%
-Total:{' ' * 28}{self.total_price:6.2f}IQD
-Payment:{' ' * 26}{self.payment:6.2f}IQD
-Change:{' ' * 27}{self.change:6.2f}IQD
+Subtotal:{' ' * 25}{self.subtotal_price:6.3f}IQD
+Discount:{' ' * 25}{self.discount:6.3f}%
+Total:{' ' * 28}{self.total_price:6.3f}IQD
+Payment:{' ' * 26}{self.payment:6.3f}IQD
+Change:{' ' * 27}{self.change:6.3f}IQD
 {'=' * 45}
 Thank you for your purchase!
 """
@@ -505,6 +513,6 @@ Thank you for your purchase!
 
     @staticmethod
     def not_exit_sound():
-        # replace the path with the path to your sound file
+        # Path to sound file
         sound_file_path = 'sound/beep-beep-6151.mp3'
         playsound(sound_file_path)
