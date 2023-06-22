@@ -154,4 +154,5 @@ if __name__ == "__main__":
 
     # set the size and position of the window to cover the entire screen
     root.geometry("%dx%d+0+0" % (screen_width, screen_height))
+    root.minsize(980, 700)
     root.mainloop()
